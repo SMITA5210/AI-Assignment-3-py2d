@@ -1,5 +1,9 @@
-import subprocess
 import os
+# One thread per numeric library. 
+for _var in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS",
+             "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_var, "1")
+import subprocess
 import signal
 import threading
 import logging
@@ -12,10 +16,24 @@ import random
 import select
 import time
 
-
+TEAM_SIZE = int(os.getenv('TEAM_SIZE', '11'))
 # Set up logging
 log_dir = None
 start_team_logger = None
+
+# Top-level and given everything as arguments, so it also works where
+# multiprocessing spawns rather than forks (macOS, Windows, Python 3.14+).
+def server_main(rpc_port, log_dir, disable_log_file, debug):
+    import sys
+    # Reset signal handlers to default in the child process
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    sys.argv = ['server.py', '--rpc-port', str(rpc_port), '--log-dir', log_dir]
+    if disable_log_file:
+        sys.argv += ['--disable-log-file']
+    if debug:
+        sys.argv += ['--debug']
+    main()
 
 def run_server_script(args):
     rpc_port = args.rpc_port
@@ -25,21 +43,11 @@ def run_server_script(args):
             s.bind(('localhost', 0))
             rpc_port = str(s.getsockname()[1])
         start_team_logger.debug(f"Using random port: {rpc_port}")
-    # Define a wrapper function to pass the arguments to the main function
-    def server_main():
-        import sys
-        # Reset signal handlers to default in the child process
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        sys.argv = ['server.py', '--rpc-port', str(rpc_port), '--log-dir', log_dir]
-        if args.disable_log_file:
-            sys.argv += ['--disable-log-file']
-        if args.debug:
-            sys.argv += ['--debug']
-        main()
 
     # Start the main function as a new process
-    process = multiprocessing.Process(target=server_main)
+    process = multiprocessing.Process(
+        target=server_main,
+        args=(rpc_port, log_dir, args.disable_log_file, args.debug))
     process.start()
     return process, rpc_port
 
@@ -57,10 +65,11 @@ def run_start_script(args, rpc_port):
     arguments += ['-t', args.team_name, 
          '--rpc-port', rpc_port, '--rpc-type', 'grpc', 
          '-p', args.server_port, '-h', args.server_host]
-        
+
+    wd = 'scripts/proxy'
     process = subprocess.Popen(
         arguments,
-        cwd='scripts/proxy',  # Corrected directory to where start.sh is located
+        cwd=wd,  # Corrected directory to where start.sh is located
         preexec_fn=os.setsid,  # Create a new session and set the process group ID
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT  # Capture stderr and redirect it to stdout
@@ -180,7 +189,7 @@ if __name__ == "__main__":
         all_server_processes = []
         all_start_processes = []
         if args.use_different_rpc_port:
-            for i in range(13):
+            for i in range(TEAM_SIZE+1):
                 server_process, rpc_port = run_server_script(args)
                 all_server_processes.append(server_process)
                 start_team_logger.debug(f"Started server.py process with PID: {all_server_processes[-1].pid}")
@@ -188,14 +197,14 @@ if __name__ == "__main__":
                 args.player = False
                 if i == 0:
                     args.goalie = True
-                    time.sleep(1)
-                elif i == 12:
+                elif i == TEAM_SIZE:
                     args.coach = True
                 else:
                     args.player = True
                 
                 # Run the start.sh script after server.py with the given arguments
                 all_start_processes.append(run_start_script(args, rpc_port))
+                time.sleep(1)
                 start_team_logger.debug(f"Started start.sh process with PID: {all_start_processes[-1].pid} with team name {args=} and rpc port {rpc_port}")
         else:
             server_process, rpc_port = run_server_script(args)

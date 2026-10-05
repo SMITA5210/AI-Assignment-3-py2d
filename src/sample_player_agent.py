@@ -22,8 +22,9 @@ class SamplePlayerAgent(IAgent, ABC):
         self.logger.info('SamplePlayerAgent created')
         
         # Flag to switch between starter mode and major mode
-        self.use_starter_code = False
-        
+        import os
+        self.use_starter_code = os.getenv("USE_STARTER", "1") not in ("0", "")
+
         # Initialize core components
         self.decision_maker = DecisionMaker(self)
         self.strategy = self._initialize_strategy()

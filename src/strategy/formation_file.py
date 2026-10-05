@@ -5,6 +5,9 @@ import logging
 from src.strategy.formation_file_reader import FormationFileReaderFactory, FormationType
 from src.strategy.player_role import PlayerRole
 
+# ROLE_MAP = {}
+ROLE_MAP = {1: 1, 2: 2, 3: 7, 4: 8, 5: 11}
+
 class FormationFile:
     def __init__(self, path, logger: logging.Logger):
         self._logger = logger

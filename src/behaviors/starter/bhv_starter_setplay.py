@@ -28,6 +28,8 @@ from src.behaviors.starter.setplay.bhv_starter_setplay_indirect_freekick import 
     BhvStarterSetPlayIndirectFreeKick,
 )
 
+from src.strategy.formation_file import ROLE_MAP
+
 if TYPE_CHECKING:
     from src.sample_player_agent import SamplePlayerAgent
 
@@ -213,7 +215,7 @@ class BhvStarterSetPlay(IBehavior):
         unum = 0
         ball_position = Vector2D(wm.ball.position.x, wm.ball.position.y)
         #find minimum distance between the our team agents and the ball
-        for i in range(1,12):
+        for i in ROLE_MAP:
             if i == wm.our_goalie_uniform_number and not wm.game_mode_type == GameModeType.GoalieCatch_:
                 continue
 
@@ -354,7 +356,7 @@ class BhvStarterSetPlay(IBehavior):
             agent.add_action(action)
             return True
 
-        if len(Tools.get_teammates_from_ball(agent)) < 9:
+        if len(Tools.get_teammates_from_ball(agent)) < len(ROLE_MAP) - 2:
             agent.add_action(action)
             return True
 

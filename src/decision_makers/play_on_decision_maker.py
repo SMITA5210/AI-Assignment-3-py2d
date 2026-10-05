@@ -1,30 +1,100 @@
-from typing import TYPE_CHECKING
-from src.interfaces.IDecisionMaker import IDecisionMaker
-from src.decision_makers.kick_decision_maker import KickDecisionMaker
-from src.decision_makers.move_decision_maker import MoveDecisionMaker
+"""play_on_decision_maker.py -- the one place student code is invoked."""
+import os
+import sys
+import threading
+import time
+import traceback
 
-if TYPE_CHECKING:
-    from src.sample_player_agent import SamplePlayerAgent
+from src.student.framework.policy import PolicyViolation, check
+from src.student.framework.runtime import (Budget, BudgetExceeded,
+                                           BudgetView, load_student)
+from src.student.framework.world import AgentView
+from src.student.framework import trace
 
-class PlayOnDecisionMaker(IDecisionMaker):
-    """
-    A decision maker that delegates decisions to either a KickDecisionMaker or a MoveDecisionMaker
-    based on whether the agent is in a position to kick the ball.
-    Attributes:
-        kick_decision_maker (KickDecisionMaker): The decision maker used when the agent can kick the ball.
-        move_decision_maker (MoveDecisionMaker): The decision maker used when the agent cannot kick the ball.
-    Methods:
-        make_decision(agent: IAgent):
-            Makes a decision based on the agent's ability to kick the ball.
-            Delegates the decision to either kick_decision_maker or move_decision_maker.
-    """
-    def __init__(self, agent: "SamplePlayerAgent"):
-        self.kick_decision_maker = KickDecisionMaker(agent)
-        self.move_decision_maker = MoveDecisionMaker(agent)
-        pass
-    
-    def make_decision(self, agent: "SamplePlayerAgent"):
-        if agent.wm.self.is_kickable:
-            self.kick_decision_maker.make_decision(agent)
+
+class PlayOnDecisionMaker:
+    def __init__(self, agent):
+        self.use_student = agent.use_starter_code
+        self.budget = None
+        # one student decision at a time
+        self._deciding = threading.Lock()
+        self._startup_ms = 0.0
+        if self.use_student:
+            started = time.process_time()
+            try:
+                cls, name = load_student()
+                self.student = cls()
+            except Exception:
+                tb = traceback.format_exc()
+                agent.logger.error("STUDENT AGENT FAILED TO LOAD\n" + tb)
+                sys.stderr.write("!! student agent failed to load\n" + tb)
+                sys.stderr.flush()
+                os._exit(1)
+            # loading is charged to the budget like any other thinking
+            self._startup_ms = (time.process_time() - started) * 1000.0
+            agent.logger.info(f"student agent: {name}")
         else:
-            self.move_decision_maker.make_decision(agent)
+            from src.decision_makers.kick_decision_maker import KickDecisionMaker
+            from src.decision_makers.move_decision_maker import MoveDecisionMaker
+            self.kick_decision_maker = KickDecisionMaker(agent)
+            self.move_decision_maker = MoveDecisionMaker(agent)
+
+    def make_decision(self, agent):
+        kickable = agent.wm.self.is_kickable
+
+        if not self.use_student:
+            if kickable:
+                self.kick_decision_maker.make_decision(agent)
+            else:
+                self.move_decision_maker.make_decision(agent)
+            return
+
+        if self.budget is None:
+            self.budget = Budget(agent.wm.our_team_name,
+                                 agent.wm.self.uniform_number,
+                                 startup_ms=self._startup_ms)
+            agent.budget = BudgetView(self.budget)   # read-only for students
+
+        before = len(agent.actions)
+
+        if self.budget.exhausted or self.budget.benched:
+            # no thinking time left for the rest of the match (or cut off too
+            # often). The player emits nothing and coasts.
+            trace.record(agent, [], self.budget)
+            return
+
+        if not self._deciding.acquire(blocking=False):
+            agent.logger.error("BUDGET: previous decision still running, "
+                               "skipping this cycle")
+            trace.record(agent, [], self.budget)
+            return
+
+        view = AgentView(agent)
+        try:
+            with self.budget:
+                if kickable:
+                    self.student.on_ball(view)
+                else:
+                    self.student.off_ball(view)
+        except BudgetExceeded:
+            # BaseException, so `except Exception` below would miss it
+            agent.logger.error("BUDGET: decision cut short at the ceiling")
+        except Exception as e:
+            agent.logger.error(f"STUDENT CODE RAISED {type(e).__name__}: {e}",
+                               exc_info=True)
+        finally:
+            self._deciding.release()
+
+        # Whatever the student produced, filter it before it reaches the
+        # proxy, and trace what actually got sent rather than what was asked
+        # for.
+        produced = agent.actions[before:]
+        del agent.actions[before:]
+        try:
+            kept = check(agent, produced)
+        except PolicyViolation as e:
+            # POLICY=raise: nothing from this decision is sent
+            agent.logger.error(f"POLICY: {e}")
+            kept = []
+        agent.actions.extend(kept)
+        trace.record(agent, kept, self.budget)

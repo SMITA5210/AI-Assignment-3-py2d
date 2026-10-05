@@ -40,3 +40,5 @@ sed -i 's/rpc_type="thrift"/rpc_type="grpc"/' start.sh
 rm -rf soccer-simulation-proxy
 
 rm soccer-simulation-proxy.tar.gz
+
+cp -r ../my-formations/* ./proxy

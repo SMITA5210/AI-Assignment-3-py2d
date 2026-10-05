@@ -9,6 +9,10 @@ from service_pb2 import *
 import logging
 from src.strategy.formation import Formation
 
+import os
+size = os.getenv('TEAM_SIZE', '11')
+formation = '4-3-3-cyrus-base' if size == '11' else f'4-3-3-{size}aside'
+
 if TYPE_CHECKING:
     from src.sample_player_agent import SamplePlayerAgent
 
@@ -28,7 +32,7 @@ class FormationStrategy(IPositionStrategy):
         self.formations: dict[str, Formation] = {}
         self._poses: dict[int, Vector2D] = {i: Vector2D(0, 0) for i in range(11)}
         self.current_situation = Situation.Offense_Situation
-        self.selected_formation_name = '4-3-3-cyrus-base'
+        self.selected_formation_name = formation
         
         self._read_formations()
         self.current_formation_file: FormationFile = self._get_current_formation().offense_formation
@@ -40,6 +44,7 @@ class FormationStrategy(IPositionStrategy):
         self.formations['4-3-3'] = Formation('src/formations/4-3-3', self.logger)
         self.formations['4-3-3-cyrus-base'] = Formation('src/formations/4-3-3-cyrus-base', self.logger)
         self.formations['4-3-3-helios-base'] = Formation('src/formations/4-3-3-helios-base', self.logger)
+        self.formations['4-3-3-5aside'] = Formation('src/formations/4-3-3-5aside', self.logger)
         
     def _get_current_formation(self) -> Formation:
         """
@@ -57,7 +62,7 @@ class FormationStrategy(IPositionStrategy):
         Args:
             wm (WorldModel): The current world model.
         """
-        self.selected_formation_name = '4-3-3-cyrus-base'  # Example: '4-3-3', '4-3-3-cyrus-base', '4-3-3-helios-base'
+        self.selected_formation_name = formation  # Example: '4-3-3', '4-3-3-cyrus-base', '4-3-3-helios-base'
         
     def update(self, agent: 'SamplePlayerAgent'):
         """
@@ -78,7 +83,7 @@ class FormationStrategy(IPositionStrategy):
         all_min = min(tm_min, opp_min, self_min)
         current_ball_pos = Vector2D(wm.ball.position.x, wm.ball.position.y)
         current_ball_vel = Vector2D(wm.ball.velocity.x, wm.ball.velocity.y)
-        ball_pos = inertia_n_step_point(current_ball_pos, current_ball_vel, all_min, 0.96)  # todo: use server param ball decay
+        ball_pos = inertia_n_step_point(current_ball_pos, current_ball_vel, all_min, agent.server_params.ball_decay)  # todo: use server param ball decay
 
         self._determine_situation(wm, ball_pos, tm_min, opp_min, self_min)
         self._update_formation_file(ball_pos)

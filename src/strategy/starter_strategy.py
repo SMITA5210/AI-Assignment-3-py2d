@@ -39,6 +39,7 @@ class StarterStrategy(IPositionStrategy):
         Returns:
             Vector2D: The position of the player.
         """
+        uniform_number = ROLE_MAP.get(uniform_number, uniform_number)
         return self._poses[uniform_number]
 
     def _set_kickoff_positions(self):

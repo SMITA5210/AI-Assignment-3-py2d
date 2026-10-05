@@ -26,7 +26,11 @@ class Tools:
         
     @staticmethod
     def ball_move_step(first_ball_speed, ball_move_dist, ball_decay):
-        return int(math.ceil(calc_length_geom_series(first_ball_speed, ball_move_dist, ball_decay)) + 1.0e-10)
+        # FIX: the epsilon was OUTSIDE the ceil adding a whole cycle 
+        # to any distance landing exactly on a step.
+        return int(math.ceil(calc_length_geom_series(first_ball_speed,
+                                                     ball_move_dist,
+                                                     ball_decay) - 1.0e-10))
     
     @staticmethod
     def first_ball_speed(ball_move_dist: float, total_step: int, ball_decay: float):
@@ -254,7 +258,8 @@ class Tools:
 
         opp_pos = Vector2D(opponent.position.x, opponent.position.y)
         opp_vel = Vector2D(opponent.velocity.x, opponent.velocity.y)
-        ptype:PlayerType = agent.get_type(opponent.type_id)
+        # FIX: was agent.get_type, which does not exist
+        ptype:PlayerType = agent.get_player_type(opponent.type_id)
         min_cycle = Tools.estimate_min_reach_cycle(opp_pos, ptype.real_speed_max, first_ball_pos,
                                                    ball_move_angle)
 
@@ -292,7 +297,8 @@ class Tools:
             if dash_dist > ptype.real_speed_max * (cycle + min(opponent.pos_count, 5)):
                 continue
 
-            n_dash = Tools.cycles_to_reach_distance(dash_dist, ptype.real_speed_max)
+            # FIX: was cycles_to_reach_distance(dash_dist, ptype.real_speed_max)
+            n_dash = Tools.cycles_to_reach_distance(agent, opponent, dash_dist)
             if n_dash > cycle + opponent.pos_count:
                 continue
 
