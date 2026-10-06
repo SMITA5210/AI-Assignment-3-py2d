@@ -1277,7 +1277,6 @@ def cmd_doctor(a, rest):
                  "conda env create -f environment.yml && conda activate a3")
 
     import platform
-    import platform
 
     if sys.platform == "darwin":
         ok &= _check(
@@ -1322,12 +1321,28 @@ def cmd_doctor(a, rest):
 
     print("\nbinaries")
     proxy_dir = os.path.join(HERE, "scripts", "proxy")
-    ok &= _check("scripts/proxy", os.path.isdir(proxy_dir), proxy_dir,
-                 "missing from your copy - re-extract the assignment bundle")
-    ok &= _check("rcssserver extracted", os.access(SERVER_BIN, os.X_OK),
-                 SERVER_BIN,
-                 "./rcssserver-*.AppImage --appimage-extract   "
-                 "# libfuse2 is unavailable, so FUSE mounting will not work")
+    ok &= _check(
+        "scripts/proxy",
+        os.path.isdir(proxy_dir),
+        proxy_dir,
+        "missing from your copy - re-extract the assignment bundle"
+    )
+
+    if sys.platform == "darwin":
+        ok &= _check(
+            "rcssserver arm64",
+            os.path.isfile(SERVER_BIN) and os.access(SERVER_BIN, os.X_OK),
+            SERVER_BIN,
+            "run ./download-binaries-macos.sh"
+        )
+    else:
+        ok &= _check(
+            "rcssserver extracted",
+            os.access(SERVER_BIN, os.X_OK),
+            SERVER_BIN,
+            "./rcssserver-*.AppImage --appimage-extract"
+        )
+
     for b in ("sample_player", "sample_coach", "sample_trainer"):
         p = os.path.join(HERE, "scripts", "proxy", b)
         ok &= _check("proxy/" + b, os.access(p, os.X_OK), "",
