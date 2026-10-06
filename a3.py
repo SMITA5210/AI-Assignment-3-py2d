@@ -1277,15 +1277,36 @@ def cmd_doctor(a, rest):
                  "conda env create -f environment.yml && conda activate a3")
 
     import platform
-    ok &= _check("linux x86_64", sys.platform.startswith("linux")
-                 and platform.machine() == "x86_64",
-                 f"{sys.platform} {platform.machine()}",
-                 "use WSL2 on Windows, or the Docker image on a Mac")
-    libc, ver = platform.libc_ver()
-    new_enough = libc == "glibc" and tuple(
-        int(x) for x in ver.split(".")[:2]) >= (2, 29)
-    ok &= _check("glibc 2.29+", new_enough, f"{libc} {ver}",
-                 "needs Ubuntu 20.04+ / Debian 11+, or the Docker image")
+    import platform
+
+    if sys.platform == "darwin":
+        ok &= _check(
+            "macOS arm64",
+            platform.machine() == "arm64",
+            f"{sys.platform} {platform.machine()}",
+            "this binary package requires Apple Silicon (arm64)"
+        )
+    else:
+        ok &= _check(
+            "linux x86_64",
+            sys.platform.startswith("linux")
+            and platform.machine() == "x86_64",
+            f"{sys.platform} {platform.machine()}",
+            "use WSL2 on Windows, or the Docker image on a Mac"
+        )
+
+        libc, ver = platform.libc_ver()
+        new_enough = libc == "glibc" and tuple(
+            int(x) for x in ver.split(".")[:2]
+        ) >= (2, 29)
+
+        ok &= _check(
+            "glibc 2.29+",
+            new_enough,
+            f"{libc} {ver}",
+            "needs Ubuntu 20.04+ / Debian 11+, or the Docker image"
+        )
+    
     print("\nimports")
     for mod in ("grpc", "numpy", "scipy", "pyrusgeom"):
         try:
