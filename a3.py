@@ -27,7 +27,12 @@ LOGS = os.path.join(HERE, "logs")
 RUNLOGS = os.path.join(HERE, "runlogs")
 TRACE_ROOT = os.path.join(RUNLOGS, "trace")
 DEFAULT_CONF = "base.conf"
-SERVER_BIN = os.path.join(HERE, "scripts", "rcssserver", "squashfs-root", "AppRun")
+if sys.platform == "darwin":
+    SERVER_BIN = os.path.join(HERE, "scripts", "rcssserver", "rcssserver")
+else:
+    SERVER_BIN = os.path.join(
+        HERE, "scripts", "rcssserver", "squashfs-root", "AppRun"
+    )
 PROXY_BIN = os.path.join(HERE, "scripts", "proxy", "sample_player")
 GIBBS = os.path.join(HERE, "gibbs")
 
