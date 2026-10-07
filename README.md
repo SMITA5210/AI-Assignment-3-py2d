@@ -1,3 +1,5 @@
+# Getting Started 
+
 This repository is a fork of the PY2D repository. It simplifies / abstracts out many aspects of the running process so you can get setup as soon as possible.
 You will require `Python>=3.11` and either `x86_64` Linux (with `glibc>=2.29` -> Ubuntu 20.04+, Debian 11+) or macOS on Apple Silicon. The setup runs well with 8GB of RAM, though even 4GB should be sufficient.
 
