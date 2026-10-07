@@ -47,13 +47,6 @@ fi
 
 wget "https://github.com/TheAbry/COL333-Assignment-3-py2d-fork/releases/latest/download/$ARCHIVE"
 
-if [ -z "$DOWNLOAD_URL" ]; then
-    echo "Could not find macOS ARM64 binary release."
-    exit 1
-fi
-
-wget "$DOWNLOAD_URL"
-
 # Check download was successful
 if [ ! -f "$ARCHIVE" ]; then
     echo "Download failed"
