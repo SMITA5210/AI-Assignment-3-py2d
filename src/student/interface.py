@@ -138,6 +138,7 @@ HELPERS
 
   Pass `agent` to these, never anything else; they unwrap what they
   need internally.
+  You can read src/utils/tools.py or this file for more information.
 
   Ball flight
     Tools.first_ball_speed(dist, steps, ball_decay)   dist+time -> speed
@@ -452,7 +453,7 @@ class Action:
 
         direction is DEGREES RELATIVE TO YOUR BODY: 0 sends the ball
         straight ahead, +-180 behind you. Straight ahead is twice as
-        hard as straight back, and you lose up to half again if the ball
+        much force as straight back, and you lose up to half again if the ball
         is behind you rather than in front, so turning to face it first
         can be worth the cycle.
 
