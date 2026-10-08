@@ -128,10 +128,10 @@ SEEING WHAT YOU DID
     note(agent, "chase")
     note(agent, "pass", to=best.uniform_number, score=0.82)
 
-  Then `python3 a3.py match A B --trace` and `python3 a3.py why`, which will show
+  Then `python3 a3.py match A B` and `python3 a3.py why`, which will show
   the labels, how often each fired, and how many of your players shared
   one at the same time (`python3 a3.py why --stack chase`). Printing does not
-  work - all processes share a terminal.
+  work - all processes share a terminal. (Use the --no-trace flag to disable tracing)
 
 
 HELPERS
