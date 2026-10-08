@@ -6,12 +6,7 @@ a3 - the assignment harness, in one file.
     python3 a3.py why                 what did my players do
     python3 a3.py watch               see it in a browser
 
-
-Match settings live in one file in rcssserver's own format, read here and
-passed to the server with --include=. Override one setting for one run
-with `-o server::half_time=30`.
-
-Every command takes --help. Python 3.8+, standard library only.
+Every command takes --help.
 """
 import argparse, ast, glob, gzip, json, os, re, shutil
 import socket, subprocess, sys, time
@@ -1458,7 +1453,9 @@ def main():
     p.add_argument("left"); p.add_argument("right")
     p.add_argument("-n", "--size", type=int)
     p.add_argument("-t", "--half", type=int)
-    p.add_argument("-p", "--port", type=int, default=6000)
+    p.add_argument("-p", "--port", type=int, default=6000, 
+                   help="set a port different from 6000 if you " \
+                   "want to run matches in parallel")
     p.add_argument("--left", dest="left_spec", metavar="SPEC",
                    help="where the left team's code comes from: `full`, a "
                         "path to agent.py, or `:ClassName`. "
