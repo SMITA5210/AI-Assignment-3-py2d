@@ -9,6 +9,11 @@ Everything else - perception, formations, set pieces, the goalie,
 penalties, neck and view - is handled for you and is identical for
 every team.
 
+Try not to get overwhelmed by the different helper functions and world model parameters.
+Many of these may not even be required by you initially. A lot of them are mainly there
+in CASE you wish to build an evaluator that factors them in, but you can make a competitive
+agent utilizing only a few of them if you want. 
+
 WHERE YOUR CODE GOES
 
   src/student/agent.py. One class, subclassing StarterAgent, overriding
