@@ -12,7 +12,8 @@ every team.
 Try not to get overwhelmed by the different helper functions and world model parameters.
 Many of these may not even be required by you initially. A lot of them are mainly there
 in CASE you wish to build an evaluator that factors them in, but you can make a competitive
-agent utilizing only a few of them if you want. 
+agent utilizing only a few of them if you want. Try to reason about what you want to do, and 
+then look at the helpers, rather than trying to use all of them forcibly.
 
 WHERE YOUR CODE GOES
 
