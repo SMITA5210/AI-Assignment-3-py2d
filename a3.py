@@ -9,7 +9,7 @@ a3 - the assignment harness, in one file.
 Every command takes --help.
 """
 import argparse, ast, glob, gzip, json, os, re, shutil
-import socket, subprocess, sys, time
+import signal, socket, subprocess, sys, time
 from collections import Counter, defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -132,9 +132,11 @@ def conf_get(conf, key, default=None):
 #   value so rcsserver parses it as a string
 
 def _popen(argv, env, out_path):
+    # its own process group, so cleanup can stop everything it starts
     fh = open(out_path, "wb")
     return subprocess.Popen(argv, env=env, cwd=HERE, stdout=fh,
-                            stderr=subprocess.STDOUT), fh
+                            stderr=subprocess.STDOUT,
+                            start_new_session=True), fh
 
 
 def _port_busy(port):
@@ -264,23 +266,32 @@ class _Procs:
         return p
 
     def cleanup(self, *_):
+        """Stop every process each match started, children included.
+
+        start.py forks a server per player; killing start.py alone left
+        those running after every match - 12,000 of them, holding ~110 GB,
+        after a few hundred matches. So: ask each process GROUP to stop,
+        give start.py time to shut its proxies down, then kill whatever
+        is left in the group."""
         say("cleaning up")
-        for p in self.procs:
-            try:
-                p.terminate()
-            except Exception:
-                pass
-        time.sleep(0.5)
-        for p in self.procs:
-            try:
-                p.kill()
-            except Exception:
-                pass
+        _signal_groups(self.procs, signal.SIGTERM)
+        deadline = time.time() + 2.0
+        while time.time() < deadline and any(p.poll() is None for p in self.procs):
+            time.sleep(0.1)
+        _signal_groups(self.procs, signal.SIGKILL)
         for h in self.handles:
             try:
                 h.close()
             except Exception:
                 pass
+
+
+def _signal_groups(procs, sig):
+    for p in procs:
+        try:
+            os.killpg(p.pid, sig)
+        except (ProcessLookupError, PermissionError):
+            pass
 
 
 def _team_env(env, a, s, mode, cls, sub, form):
