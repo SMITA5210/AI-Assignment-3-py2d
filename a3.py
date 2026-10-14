@@ -266,16 +266,14 @@ class _Procs:
         return p
 
     def cleanup(self, *_):
-        """Stop every process each match started, children included.
-
-        start.py forks a server per player; killing start.py alone left
-        those running after every match - 12,000 of them, holding ~110 GB,
-        after a few hundred matches. So: ask each process GROUP to stop,
-        give start.py time to shut its proxies down, then kill whatever
-        is left in the group."""
+        """
+        ask each process GROUP to stop, give start.py time to shut proxies, 
+        kill whatever is left.
+        """
         say("cleaning up")
         _signal_groups(self.procs, signal.SIGTERM)
         deadline = time.time() + 2.0
+        # no need to wait till deadline if all stopped
         while time.time() < deadline and any(p.poll() is None for p in self.procs):
             time.sleep(0.1)
         _signal_groups(self.procs, signal.SIGKILL)
@@ -449,6 +447,13 @@ def cmd_match(a, rest):
 
     if _announce(a, s, teams, sargs):
         return 0 # dry run
+
+    # make kill/timeout/closed terminal hit the finally
+    def _stop(sig, _frame):
+        raise SystemExit(128 + sig)
+    for name in ("SIGTERM", "SIGHUP"):
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), _stop)
 
     env = _base_env()
     processes = _Procs()
