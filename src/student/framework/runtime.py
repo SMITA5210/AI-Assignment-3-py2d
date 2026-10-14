@@ -341,6 +341,7 @@ BLOCKED_IMPORTS = {
             "framework internals - use src.student.interface"),
     **_each("service_pb2 service_pb2_grpc google.protobuf",
             "raw protobuf - use the Action API"),
+    **_each("scipy", "not allowed - plain Python and numpy only"),
 }
 
 
