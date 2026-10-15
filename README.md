@@ -29,6 +29,8 @@ for b in sample_player sample_coach sample_trainer; do
     cd ..
     mv $b $b.AppImage
     ln -s extract_$b/squashfs-root/AppRun $b
+done
+cd ..
 ```
 Note: We extract the AppImage binaries so that students don't need to have FUSE on their machines (even if you have FUSE, extract them since the script expects the AppImage to be extracted.)
 

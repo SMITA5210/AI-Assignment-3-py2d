@@ -27,7 +27,8 @@ else
 fi
 
 # download soccer simulation server App Image
-wget $(curl -s https://api.github.com/repos/clsframework/rcssserver/releases/latest | grep -oP '"browser_download_url": "\K(.*rcssserver-x86_64-.*\.AppImage)' | head -n 1)
+# pinned to the version the autograder uses
+wget https://github.com/CLSFramework/rcssserver/releases/download/19.0.0/rcssserver-x86_64-19.0.0.AppImage
 
 # check download is successful
 if [ ! -f *.AppImage ]; then
