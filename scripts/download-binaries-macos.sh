@@ -58,15 +58,16 @@ echo "Extracting binaries..."
 tar -xvf "$ARCHIVE"
 
 # Check extracted directory exists
-if [ ! -d "$EXTRACTED_DIR" ]; then
-    echo "Extraction failed: $EXTRACTED_DIR not found."
+if [ ! -d "rcssserver" ]; then
+    echo "Extraction failed: rcssserver not found."
     exit 1
 fi
 
-mv "$EXTRACTED_DIR/rcssserver" .
-mv "$EXTRACTED_DIR/proxy" .
+if [ ! -d "proxy" ]; then
+    echo "Extraction failed: proxy not found."
+    exit 1
+fi
 
-rm -rf "$EXTRACTED_DIR"
 rm -f "$ARCHIVE"
 
 chmod +x rcssserver/rcssserver
