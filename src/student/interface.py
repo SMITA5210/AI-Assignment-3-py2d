@@ -454,14 +454,14 @@ class Action:
 
     @staticmethod
     def tackle(agent, direction: float = 0.0, foul: bool = False):
-        """Lunge at a ball roughly 1-2m ahead. wm.self.tackle_probability
-        is chance of winning it.
+        """Lunge at a ball up to 2m ahead. wm.self.tackle_probability
+        is chance of winning it; it is 0 if the ball is behind you, so
+        turning to face it first can be worth the cycle.
 
         direction is DEGREES RELATIVE TO YOUR BODY: 0 sends the ball
-        straight ahead, +-180 behind you. Straight ahead is twice as
-        much force as straight back, and you lose up to half again if the ball
-        is behind you rather than in front, so turning to face it first
-        can be worth the cycle.
+        straight ahead at full force. Force falls off evenly away from
+        straight ahead - half at +-90, none at +-180 - so a backward
+        tackle does not move the ball.
 
         foul=True is a deliberate professional foul: always charges the
         opponent, and yields a yellow if the referee spots it
