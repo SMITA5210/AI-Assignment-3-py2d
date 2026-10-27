@@ -1,0 +1,23 @@
+Evaluation plan v14, fixed 2026-10-27T10:15:56+00:00 before any v14 evaluation match.
+Goal of the experiment: convert possession recoveries into sustained attacks and shots.
+Diagnosis (v13/v11 evaluation matches B13/B11, corrected tools, tools/recoveries.py):
+  after a recovery we keep the ball a median 0 cycles (59% lost within 5) vs HELIOS 12 (42%); 0.7% of our
+  recoveries lead to a shot vs 20.8% of theirs. Passing is not the leak (97% of passes succeed). In shooting range
+  the agent mostly holds or passes: the shot curve (hand-set 0.5 / 1.0, never fitted) predicted 0.50 at 12-18 m
+  where 0.87 of our shots scored (388 traced matches vs full, tools/fit_shots.py).
+Change (single): shot curve refitted by MAP (SHOT_OFFSET -1.85, SHOT_SCALE 1.372); held-out log loss -36%, all
+  predeclared fit gates passed; plus shot_p logged in on-ball notes (no behaviour change).
+Candidate tools/versions/v14/agent.py md5 2166ad360dce (v13 + shot refit).
+Baseline: production v11 = src/student/agent.py md5 db7aef6ffb15. Research parent v13 md5 a6553c0a3f44.
+Disclosure: the shot fit used all traced matches vs full, including earlier evaluation matches; all matches here are fresh.
+Corrected metrics: tools/keep_data.py and tools/metrics.py count a TACKLE flag only in its first cycle (it stays set
+  for tackle_cycles = 10); earlier tackle-win, turnover and shot counts for tackling versions were recomputed.
+Opponent full; base.conf md5 1c099f4a388ad11ddac50ebc64fe5144; seeds not controllable; versions alternate in every batch.
+24 matches each (names A14_1..24, A11_1..24), interleaved v14, v11, ...
+Verdict on these 48 matches only:
+  PASS         v14 points/match > v11 AND 90% bootstrap interval (4000 reps, seed 7) of the difference excludes 0
+               AND goals against/match not worse by more than 0.25
+  FAIL         v14 points/match < v11 (point estimate), or goals against worse by more than 0.5/match
+  INCONCLUSIVE otherwise
+Also reported: shots, close-range chances, shot decisions and conversion, recoveries -> shot rate, possession after
+  recoveries, back-pass fouls, tackles, fouls, opponent shots, planning time, per-match results.

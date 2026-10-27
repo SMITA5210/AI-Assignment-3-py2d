@@ -1,0 +1,19 @@
+Evaluation plan, fixed 2026-10-25T17:35:21+00:00 before any evaluation match.
+Opponent: full. Settings: base.conf (md5 1c099f4a388ad11ddac50ebc64fe5144), a3.py match defaults.
+Seeds: not controllable (only player::random_seed exists, which fixes player types); conditions are
+balanced by interleaving versions inside every batch of 3 parallel matches and rotating ports.
+Versions (md5): v3 f52543749c3b, v10a ef45dda72c5e (tackle fix only),
+  v10b 927c2cc2b62f (goal-side fix only), v10 88e16c4dbe85 (both).
+Development smoke matches (SMV10*, SMX*) were used while building v10 and are NOT evaluation data.
+Stage P (preliminary): 12 matches each of v3, v10a, v10b, v10 (names E3P*, EAP*, EBP*, ECP*).
+  Selection: the candidate with the most points/match (tie: goal difference); it goes to stage C only if
+  its points/match >= v3's in stage P.
+Stage C (confirmation, fresh matches): 24 matches each of v3 and the selected candidate (E3C*, ESC*).
+  Verdict on stage C only (stage P is reused for selection, so it is not used for the verdict):
+  PASS         candidate points/match > v3 AND the 90% match-bootstrap interval of the difference
+               (4000 replicates, seed 7) excludes 0 AND goals against/match not worse by more than 0.25
+  FAIL         candidate points/match < v3 (point estimate), or goals against worse by more than 0.5/match
+  INCONCLUSIVE otherwise
+Stop rule: any invalid match, forfeit, cut-off, traceback or policy violation stops the run.
+Metrics: W/D/L, points, GF, GA, shots, big chances (<20 m), HELIOS shots, turnovers by half and third,
+  fouls, planning-time %, validity, per-match results.

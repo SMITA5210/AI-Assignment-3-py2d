@@ -1,0 +1,16 @@
+Evaluation plan v13, fixed 2026-10-27T09:29:50+00:00 before any v13 evaluation match.
+Candidate tools/versions/v13/agent.py md5 a6553c0a3f44 (v12 + back-pass-aware tackle outcomes).
+Baseline: the promoted production agent v11 = src/student/agent.py = tools/versions/v11/agent.py md5 db7aef6ffb15.
+Design disclosure: BACK_PASS_COST (21/24) and the back-pass diagnosis came from v11/v12 evaluation matches; the tackle
+  timing of v12 came from v11's evaluation matches. All matches below are fresh.
+Tool fix disclosed: tools/keep_data.py and tools/metrics.py count a TACKLE flag only in its first cycle (it stays set for
+  tackle_cycles); earlier tackle-win and turnover figures were recomputed with this fix.
+Opponent full; base.conf md5 1c099f4a388ad11ddac50ebc64fe5144; seeds not controllable; versions alternate in every batch.
+24 matches each (names B13_1..24, B11_1..24), interleaved v13, v11, ...
+Verdict on these 48 matches only:
+  PASS         v13 points/match > v11 AND 90% bootstrap interval (4000 reps, seed 7) of the difference excludes 0
+               AND goals against/match not worse by more than 0.25
+  FAIL         v13 points/match < v11 (point estimate), or goals against worse by more than 0.5/match
+  INCONCLUSIVE otherwise
+Also reported: back-pass fouls, tackle attempts/contacts/possession wins/immediate losses, fouls, cards, turnovers,
+  opponent shots, planning time, per-match results.

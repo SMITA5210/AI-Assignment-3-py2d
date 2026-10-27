@@ -1,0 +1,24 @@
+38585 labelled root passes in 256 matches; success rate 0.954
+pipeline check: recomputed m within 0.05 of logged for 95.8%, f within 0.02 for 96.4%
+  inner CV A k=8     log loss 0.19417
+  inner CV A k=64    log loss 0.19453
+  inner CV A k=512   log loss 0.19717
+  inner CV B k=8     log loss 0.20341
+  inner CV B k=64    log loss 0.20354
+  inner CV B k=512   log loss 0.20447
+  inner CV C k=8     log loss 0.18796
+  inner CV C k=64    log loss 0.18833
+  inner CV C k=512   log loss 0.19097
+chosen model C (k=8): OFF=-7.126 SCALE=1.667 PRESS=2.511
+held out (19734 passes, 128 matches): log loss 0.18886 -> 0.17929 (-5.1%), Brier 0.04283 -> 0.04245
+   all                    n=19734 observed 0.956 base 0.915 new 0.917  |err| 0.041 -> 0.039
+   pressed (opp <= 3 m)   n= 1837 observed 0.734 base 0.874 new 0.820  |err| 0.140 -> 0.086
+   forward > 5 m          n= 5705 observed 0.930 base 0.877 new 0.899  |err| 0.053 -> 0.032
+   margin < -2            n=  400 observed 0.693 base 0.618 new 0.743  |err| 0.075 -> 0.051
+   log-loss difference: leave-one-match-out range -0.00996..-0.00850; bootstrap 90% [-0.01364, -0.00564]
+  G1 log loss -2%                              PASS
+  G2 Brier not worse                           PASS
+  G3 pressed better, forward not worse >0.02   PASS
+  G4 leave-one-match-out sign                  PASS
+  G5 bootstrap excludes 0                      PASS
+DECISION: ACCEPT model C; refit on all 38585: PASS2_OFFSET=-7.533 PASS2_SCALE=1.730 PASS2_PRESS=2.613 (features motion)

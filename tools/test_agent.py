@@ -11,7 +11,8 @@ import service_pb2 as pb
 from src.utils.tools import Tools as RawTools
 import src.student.agent as A
 
-SP = types.SimpleNamespace(player_size=0.3, 
+SP = types.SimpleNamespace(player_size=0.3, ball_size=0.085, stopped_ball_vel=0.01, goal_post_radius=0.06, kick_rand=0.1,
+    max_moment=180.0, inertia_moment=5.0, tackle_cycles=10, max_tackle_power=100.0, max_back_tackle_power=0.0, tackle_power_rate=0.027, 
     ball_decay=0.94, ball_speed_max=3.0, max_power=100.0, ball_accel_max=2.7,
     real_speed_max=1.0, player_speed_max=1.05, kickable_area=1.085,
     catchable_area=1.3, tackle_dist=2.0, pitch_half_length=52.5,
@@ -81,7 +82,7 @@ class FakeAgent:
         self.budget = FakeBudget()
         self.strategy = FakeStrategy()
         selfp = types.SimpleNamespace(uniform_number=me.uniform_number, position=me.position,
-            velocity=V(0, 0), body_direction=me.body_direction, is_kickable=kickable,
+            velocity=me.velocity, body_direction=me.body_direction, is_kickable=kickable,
             kick_rate=0.025 if kickable else 0.0001, stamina=8000.0,
             tackle_probability=0.0, foul_probability=0.0, is_goalie=False)
         b = types.SimpleNamespace(position=V(*ball), velocity=V(*bvel),
@@ -112,7 +113,7 @@ for _ in range(trials):
         mates = [p for p in ours if p is not me] + [GK]
         ag = FakeAgent(me, mates, theirs, ball, bvel, op_kick=op_kick)
         got = []
-        A.note = lambda agent, what, **f: got.append((what, f))
+        A.note = lambda agent, what, **f: (what != "model" and got.append((what, f)))
         A.Agent1().off_ball(ag)
         roles[me.uniform_number] = got[0]
     labels = [r[0] for r in roles.values()]
@@ -134,7 +135,7 @@ for _ in range(150):
     mates = ours[1:] + [GK]
     ag = FakeAgent(me, mates, theirs, ball, (0.2, 0.0), kickable=True)
     got = []
-    A.note = lambda agent, what, **f: got.append((what, f))
+    A.note = lambda agent, what, **f: (what != "model" and got.append((what, f)))
     t = time.process_time(); A.Agent1().on_ball(ag); worst_ms = max(worst_ms, (time.process_time() - t) * 1000)
     errs += any(g[0] == "error" for g in got)
     empty += not ag.actions
@@ -147,7 +148,7 @@ check("on_ball stops near its share (cap 60ms)", worst_ms < A.THINK_CAP_MS + 15,
 def decide(me, mates, theirs, ball):
     ag = FakeAgent(me, mates + [GK], theirs, ball, kickable=True, line=40)
     got = []
-    A.note = lambda agent, what, **f: got.append((what, f))
+    A.note = lambda agent, what, **f: (what != "model" and got.append((what, f)))
     A.Agent1().on_ball(ag)
     return got[0]
 empty_goal = [player(1, 52, 6.5, goalie=True)]
@@ -176,9 +177,9 @@ def tackle_case(opp_xy):
     ag = FakeAgent(me, [GK], [player(1, 50, 0, goalie=True), player(5, *opp_xy)], (1.0, 0.0), op_kick=True)
     ag.wm.self.tackle_probability = 0.95
     got = []
-    A.note = lambda agent, what, **f: got.append(what)
+    A.note = lambda agent, what, **f: (what != "model" and got.append(what))
     a = A.Agent1(); a._m = A._Model(SP)
-    return a._tackle(ag, a._m, np.array([1.0, 0.0])), got
+    return a._tackle(ag, a._m, np.array([1.0, 0.0]), np.array([[10.0, 5.0]]), np.array([[50.0, 0.0], list(opp_xy)])), got
 ok_between, g1 = tackle_case((0.6, 0.1))     # opponent between me and the ball
 ok_beyond, g2 = tackle_case((1.8, 0.0))      # opponent on the far side of the ball
 ok_wide, g3 = tackle_case((0.5, 1.5))        # opponent well off the line

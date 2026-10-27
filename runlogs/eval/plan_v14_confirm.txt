@@ -1,0 +1,11 @@
+Confirmation plan v14, fixed 2026-10-27T10:46:22+00:00 before any confirmation match.
+Candidate tools/versions/v14/agent.py md5 2166ad360dce; baseline production v11 src/student/agent.py md5 db7aef6ffb15.
+Opponent full; base.conf md5 1c099f4a388ad11ddac50ebc64fe5144; seeds not controllable; versions alternate in every batch (v11 first this time).
+24 fresh matches each (names Q11_1..24, Q14_1..24). Verdict on these 48 matches only (eval14 not reused); thresholds unchanged:
+  PASS         v14 points/match > v11 AND 90% bootstrap interval (4000 reps, seed 7) of the difference excludes 0
+               AND goals against/match not worse by more than 0.25
+  FAIL         v14 points/match < v11 (point estimate), or goals against worse by more than 0.5/match
+  INCONCLUSIVE otherwise
+Operational validity (all required for promotion): every match valid; 0 tracebacks; 0 policy violations; 0 forfeits or
+  cut-offs; 0 error notes in v14 traces; planning time within budget (< 100%) in every match.
+Promotion only if both the statistical rule gives PASS and operational validity holds.

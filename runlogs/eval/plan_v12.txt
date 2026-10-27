@@ -1,0 +1,14 @@
+Evaluation plan v12, fixed 2026-10-26T19:11:15+00:00 before any v12 evaluation match.
+Candidate tools/versions/v12/agent.py md5 154e4139c56b (v11 + tackle timing: never a controlled ball,
+  tackle a loose ball an opponent would reach first). Research baseline tools/versions/v11/agent.py md5 db7aef6ffb15.
+  Safe backup v3 (not rerun; 40 earlier matches for reference).
+Design disclosure: the timing rule was chosen from v11's 40 evaluation matches (eval11 + confirm11); all matches here are fresh.
+Opponent full; base.conf md5 1c099f4a388ad11ddac50ebc64fe5144; seeds not controllable; versions alternate in every batch.
+24 matches each (names T12_1..24, T11_1..24), interleaved v12, v11, ...
+Verdict on these 48 matches only:
+  PASS         v12 points/match > v11 AND 90% bootstrap interval (4000 reps, seed 7) of the difference excludes 0
+               AND goals against/match not worse by more than 0.25
+  FAIL         v12 points/match < v11 (point estimate), or goals against worse by more than 0.5/match
+  INCONCLUSIVE otherwise
+Also reported: tackle attempts, contacts, possession wins, immediate opponent recoveries, fouls, cards,
+  defensive-third turnovers, opponent shots, planning time, per-match results.

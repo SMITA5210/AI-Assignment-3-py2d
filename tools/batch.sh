@@ -7,15 +7,17 @@
 #
 # NAME is the opponent's team name (must differ per match), SPEC is what a3.py
 # accepts after --right. Output goes to runlogs/batch/<TAG>_<n>.txt.
+# LEFT=tools/versions/v1/agent.py tools/batch.sh ...  plays an older version as ME.
 cd "$(dirname "$0")/.." || exit 1
 PY=${PYTHON:-python3}
+LEFT=${LEFT:-src/student/agent.py}
 tag=$1; shift
 mkdir -p runlogs/batch
 i=0
 for spec in "$@"; do
   name=${spec%%:*}; opp=${spec#*:}
   port=$((6000 + 10 * (i % 3)))
-  $PY a3.py match ME "$name" --left src/student/agent.py --right "$opp" -p $port \
+  $PY a3.py match ME "$name" --left "$LEFT" --right "$opp" -p $port \
       > runlogs/batch/${tag}_$i.txt 2>&1 &
   i=$((i + 1))
   if (( i % 3 == 0 )); then wait; fi

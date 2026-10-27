@@ -1,0 +1,15 @@
+Re-baseline under the new keeper, fixed 2026-10-27T18:35:37+00:00 before any match.
+Framework: upstream/main merged locally (merge d3cd2d6; keeper restart rewrite b990c80, tackle docstring b48f4c2).
+  All earlier evaluations used the old keeper and are not pooled with these matches.
+Versions: production v11 = src/student/agent.py md5 db7aef6ffb15 (= tools/versions/v11);
+  candidate v14 tools/versions/v14/agent.py md5 2166ad360dce.
+Opponent full; base.conf md5 1c099f4a388ad11ddac50ebc64fe5144; seeds not controllable; versions alternate in every batch.
+24 fresh matches each (names K14_1..24, K11_1..24), interleaved v14, v11, ...
+Verdict on these 48 matches only, same rule as plan_v14_confirm.txt:
+  PASS         v14 points/match > v11 AND 90% bootstrap interval (4000 reps, seed 7) of the difference excludes 0
+               AND goals against/match not worse by more than 0.25
+  FAIL         v14 points/match < v11 (point estimate), or goals against worse by more than 0.5/match
+  INCONCLUSIVE otherwise
+Operational validity: every match valid; 0 tracebacks, policy violations, forfeits/cut-offs, error notes; planning < 100%.
+Also reported: absolute level of each version under the new keeper vs its old-keeper record, shots, goals, keeper restarts.
+No promotion without the user's approval.

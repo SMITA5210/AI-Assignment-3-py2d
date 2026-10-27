@@ -1,0 +1,13 @@
+Evaluation plan v11, fixed 2026-10-26T18:04:52+00:00 before any v11 evaluation match.
+Candidate: tools/versions/v11/agent.py md5 db7aef6ffb15 (v10a + tackle outcome along the ball path,
+  out-of-bounds restarts, same-cycle carrier kick 0.66). Baseline: tools/versions/v3/agent.py md5 f52543749c3b.
+Opponent full; base.conf md5 1c099f4a388ad11ddac50ebc64fe5144; seeds not controllable; versions alternate inside every batch.
+16 fresh matches each (names E11_1..16, E3V_1..16), interleaved v11, v3, v11, v3 ...
+Development data: SAME_CYCLE_KICK was estimated on v10a/v10 stage-P traces + v11 smoke (S11_*); smoke S11*/S11B* are not evaluation data.
+Verdict on these 32 matches only:
+  PASS         v11 points/match > v3 AND 90% bootstrap interval (4000 reps, seed 7) of the difference excludes 0
+               AND goals against/match not worse by more than 0.25
+  FAIL         v11 points/match < v3 (point estimate), or goals against worse by more than 0.5/match
+  INCONCLUSIVE otherwise
+Stop rule as tools/eval_run.sh. Reported: per-match results, points, GF, GA, tackle attempts, contacts, possession
+  wins, immediate opponent recoveries, fouls, cards, defensive-third turnovers, opponent shots, planning time.

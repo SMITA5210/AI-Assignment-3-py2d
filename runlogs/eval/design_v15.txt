@@ -1,0 +1,48 @@
+v15: bounded tactical search on top of v14. Design, agreed 2026-10-27.
+
+Parent v14 (tools/versions/v14/agent.py, md5 2166ad360dce; confirmation INCONCLUSIVE, research branch).
+Reference arm: production v11 (src/student/agent.py = tools/versions/v11/agent.py, md5 db7aef6ffb15).
+Never modified: src/student/agent.py, tools/versions/{v3,v3_backup_prepromotion,v11,v12,v13,v14}.
+No promotion without explicit approval.
+
+Every stage sits behind its own switch in tools/versions/v15/agent.py (all off = v14 behaviour).
+Each stage: unit tests + profiling + 3-match smoke + a 12-vs-12 interleaved screen against the
+previous validated stage (or v14 for stage 1), screen rule predeclared in runlogs/eval/plan_v15_sN.txt.
+A stage that fails its screen is switched off before the next stage starts.
+
+Stage 1  Baseline and safety: checksums, architecture map, tests, v15 = v14 with all switches off;
+         equivalence test (identical decisions to v14); screen = A/A sanity check.
+Stage 2  Shared utility evaluator (STAGE_EVAL):
+         - U(x, y, state): P(a shot chance from there) via the fitted v14 shot curve after a control
+           delay, plus field progress; turnover risk P(lose) * danger, danger rising when fewer of our
+           players are goal-side of the ball. Accepted only if it predicts "this possession scores"
+           better than v14's value() on held-out replays (gates fixed before fitting).
+         - Pass model refit (improvement 1): nearest-opponent pressure on the passer as a feature, player
+           velocity/body in reach times; MAP with the current curve as prior; event-based labels;
+           held-out gates fixed before fitting.
+Stage 3  Ball-carrier lookahead (STAGE_LOOKAHEAD): hold valued with opponents closing at measured speed
+         and with tackle risk; shooting now vs later on the same kick model (measured: with a >= 0.6
+         shot available, v14 shot in 17 of 33 cases); search reuse between cycles (improvement 5).
+Stage 4  Opponent response (STAGE_RESPONSE): one-step expectimax for the root top-6 options over the
+         nearest 1-2 opponents' responses (press carrier, block shot lane, cut pass lane, close the
+         receiver), probabilities counted from HELIOS replays (improvement 2, opponent model). < 5 ms.
+Stage 5  CSP coordination (STAGE_CSP): hard constraints (legality: onside, in bounds, outside our box;
+         distinct spots; >= 1 supporter behind the ball, 2 in our half when the ball is there);
+         soft constraints (spacing, open passing lane, width); exhaustive search with pruning,
+         bounded to a few thousand assignments, vectorised.
+Stage 6  Off-ball lookahead (STAGE_OFFBALL): support spots scored with U (shot chance after receiving),
+         through balls using receiver velocity (improvement 3); defensive anticipation of HELIOS's
+         likely next pass from the opponent model (improvement 2); marking otherwise unchanged.
+Later, only if the core stages are measured: MCTS on-ball (4), constant tuning by local search on
+         offline objectives (6), targeted high press (7), dribble data under pressure (8).
+Excluded: learning methods (instructor's warning), set pieces / goalie (framework), communication (stripped).
+
+Final: predeclared 24 fresh interleaved matches each of v15, v14, v11 vs full; PASS/FAIL/INCONCLUSIVE as
+in plan_v14_confirm.txt plus operational validity; confirmation run only after a PASS.
+
+Decisions recorded 2026-10-27T16:59:58+00:00:
+- Stage 1 accepted by the user (decision-identical to v14; its 12-v-12 REJECT was a measured false alarm:
+  identical teams trigger the 12-v-12 rule 16.6% of the time). Parent snapshot tools/versions/v15_s1/agent.py
+  md5 1dcab1e3824f.
+- Screens for stages 2-6: 24 v 24 interleaved vs the immediate parent, a regression WARNING (not automatic
+  rejection); large drops are investigated with uncertainty and replay evidence.

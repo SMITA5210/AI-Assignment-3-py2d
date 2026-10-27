@@ -1,0 +1,8 @@
+v15 stage 1 screen, fixed 2026-10-27T16:02:33+00:00 before any screen match.
+Candidate v15 (all STAGE_* off) md5 1dcab1e3824f; parent v14 md5 2166ad360dce.
+Offline: identical decisions to v14 on 300 random states (depth differences from timing only).
+Screen: 12 fresh interleaved matches each vs full (names P15S1_n, P14S1_n). This is an A/A sanity check
+(the code paths are the same), and it measures the chance spread between identical teams.
+Rule (design_v15.txt): REJECT if points/match worse than the parent by more than 0.5, or goals
+against/match worse by more than 0.5; any invalid match, traceback, policy violation, forfeit or error
+note also rejects. Otherwise the stage is accepted. Thresholds will not change after seeing results.
