@@ -36,11 +36,13 @@ RECV_SLACK, RECV_SCALE = 1.0, 1.5    # receiver needs a cycle to turn/start
 # low margins, so this data covers them (selection bias of the first round).
 # Held-out log-likelihood per sample, hand-set -> fitted: pass -0.939 -> -0.245
 # (n=3293), dribble -0.304 -> -0.043 (n=6636), hold -0.257 -> -0.040 (n=5174).
-# Shots: 22 samples, mostly against weak opponents, so the hand-set prior
-# (0.5, 1.0) is kept. The dribble offset sits at the fit's grid edge (-4):
+# Shots (v14): fitted with tools/fit_shots.py on 111 shoot decisions in 388
+# traced matches vs full (the hand-set prior 0.5 / 1.0 had never been fitted).
+# Held out (54 shots): log loss 0.412 -> 0.264, Brier 0.144 -> 0.081; at 12-25 m
+# observed 0.69, old curve 0.39, new 0.69. The dribble offset sits at the fit's grid edge (-4):
 # dribbles almost never fail, so how far it can be pushed is unknown.
 PASS_OFFSET, PASS_SCALE = -3.2, 0.82
-SHOT_OFFSET, SHOT_SCALE = 0.5, 1.0
+SHOT_OFFSET, SHOT_SCALE = -1.85, 1.372
 DRIBBLE_OFFSET, DRIBBLE_SCALE = -4.0, 1.09
 HOLD_OFFSET, HOLD_SCALE = -1.1, 0.46
 
@@ -75,6 +77,16 @@ BODY_SAFETY = 15.0      # degrees of slack on the charge rule's body-angle test
 # lost). Measured: 130 of 196 tackles vs full with an opponent in kickable
 # range saw his touch in the same cycle (v10a/v10 stage P + v11 smoke traces).
 SAME_CYCLE_KICK = 0.66
+# Tackle timing (v12): on v11's 166 tackles vs full, a carrier with the ball
+# in his kickable range was dispossessed 19 times in 148 tries, a loose ball
+# was won 14 times in 18. So: never tackle a controlled ball; tackle a loose
+# one (e.g. between a dribbler's touches) that an opponent would reach first.
+TACKLE_TIMING = True
+# v13: our goalie catches any ball in our penalty area, and a catch after a
+# teammate's kick or tackle is a back-pass foul: an indirect free kick for
+# them next to our goal. All 24 such fouls in v11/v12's 88 evaluation matches
+# vs full followed our own tackles, and they scored within 100 cycles after 21.
+BACK_PASS_COST = 21.0 / 24.0
 STATE_MARGIN = 2.0      # after they had the ball, a loose ball is ours only if we
                         # get there this many cycles before them
 
@@ -371,7 +383,7 @@ class _Model:
                   if len(opps) else 99.0)
         return float(_sig((theirs - mine) / RACE_SCALE))
 
-    def touch_outcome(self, ball, vel, ours, theirs):
+    def touch_outcome(self, ball, vel, ours, theirs, keeper=None):
         """Who gets a ball sent from `ball` with velocity `vel` (after the
         server's accel cap, added to the old velocity, speed capped), and
         what that is worth to us.
@@ -390,6 +402,10 @@ class _Model:
         random error (kick_rand * tackle_rand_factor scaled) is covered by
         turning the arrival-time difference into a probability with
         RACE_SCALE, as race() does.
+        `keeper`: our goalie, (positions, bodies, speeds) of one player. If
+        he gets there first inside our penalty area he catches it, and after
+        our touch that is a back-pass foul (value -BACK_PASS_COST); outside
+        it he is just another teammate.
         -> dict(p=P(our team gets it), value, how, t_us, t_them, at)"""
         T = self.horizon
         pts = ball + vel[None, :] * self.travel[:T, None]           # cycles 1..T
@@ -414,6 +430,14 @@ class _Model:
 
         t_us, at_us = first(ours)
         t_them, at_them = first(theirs)
+        if keeper is not None and len(keeper[0]):
+            t_gk, at_gk = first(keeper)
+            if np.isfinite(t_gk) and t_gk <= min(t_us, t_them):
+                if at_gk[0] < -self.pen_x and abs(at_gk[1]) < self.pen_hw:
+                    return dict(p=0.0, value=-BACK_PASS_COST, how="back_pass",
+                                t_us=None if np.isinf(t_us) else t_us,
+                                t_them=None if np.isinf(t_them) else t_them, at=at_gk)
+                t_us, at_us = t_gk, at_gk
 
         if t_out is not None:
             # where it crosses the line, and what that gives
@@ -599,6 +623,8 @@ class Agent1(StarterAgent):
         p_full = p_full * keep1 ** 2
         ev_one, ev_full = m.shot_ev(ball, targets, p_one), m.shot_ev(ball, targets, p_full)
         i, j = int(np.argmax(ev_one)), int(np.argmax(ev_full))
+        # best shot on offer this cycle, logged with every decision
+        self._shot_p = float(max(p_one.max(), p_full.max()))
         # extra carries the raw model terms, logged so the curves can be fitted
         options.append((float(ev_one[i]), "shoot", targets[i],
                         ("one", float(p_one[i]), float(m_one[i]), float(f_one[i]))))
@@ -754,13 +780,17 @@ class Agent1(StarterAgent):
         return best
 
     def _act(self, agent, m, kind, target, extra, ev, depth, mates):
+        shot_p = round(getattr(self, "_shot_p", 0.0), 3)
+
+        def say(agent, what, **f):       # every on-ball note also carries shot_p
+            note(agent, what, shot_p=shot_p, **f)
         at = [round(float(target[0]), 1), round(float(target[1]), 1)]
         tv = Vector2D(float(target[0]), float(target[1]))
         # m: opponent margin in cycles, f: the curve's other factors, so that
         # p = sigmoid((m - offset) / scale) * f can be refitted from traces
         if kind == "shoot":
             how, p, mg, f = extra
-            note(agent, "shoot", ev=round(ev, 3), how=how, p=round(p, 3),
+            say(agent, "shoot", ev=round(ev, 3), how=how, p=round(p, 3),
                  m=round(mg, 2), f=round(f, 3), at=at, depth=depth)
             if how == "one":
                 Action.kick_one_step(agent, tv)
@@ -768,22 +798,22 @@ class Agent1(StarterAgent):
                 Action.kick(agent, tv, 1)
         elif kind == "pass":
             (recv, n), p, mg, f = extra
-            note(agent, "pass", ev=round(ev, 3), p=round(p, 3), m=round(mg, 2),
+            say(agent, "pass", ev=round(ev, 3), p=round(p, 3), m=round(mg, 2),
                  f=round(f, 3), to=int(mates[recv].uniform_number), n=n, at=at,
                  depth=depth)
             Action.kick(agent, tv, n, accept_late=2)
         elif kind == "dribble":
             _, p, mg, _ = extra
-            note(agent, "dribble", ev=round(ev, 3), p=round(p, 3), m=round(mg, 2),
+            say(agent, "dribble", ev=round(ev, 3), p=round(p, 3), m=round(mg, 2),
                  at=at, depth=depth)
             Action.dribble(agent, tv)
         elif kind == "hold":
             keep, mg = extra
-            note(agent, "hold", ev=round(ev, 3), p=round(keep, 3), m=round(mg, 2),
+            say(agent, "hold", ev=round(ev, 3), p=round(keep, 3), m=round(mg, 2),
                  depth=depth)
             Action.hold(agent)
         else:
-            note(agent, "clear", ev=round(ev, 3), depth=depth)
+            say(agent, "clear", ev=round(ev, 3), depth=depth)
         Action.clear(agent)      # the line that cannot fail
 
     # OFF THE BALL
@@ -848,14 +878,24 @@ class Agent1(StarterAgent):
                 state = "ours" if our_t[chaser] + margin <= opp_t.min() else "theirs"
             origin = path[min(int(our_t[chaser]), m.horizon)]
 
-        if (FIX_TACKLE and chaser != mine and wm.kickable_opponent_existance
+        if TACKLE_TIMING:
+            controlled = bool(len(opos)) and bool(
+                (np.linalg.norm(opos - ball, axis=1) <= m.kickable).any())
+            loose_theirs = (not controlled and not wm.kickable_teammate_existance
+                            and len(opos) and opp_t.min() <= our_t[mine])
+            if wm.self.tackle_probability > 0.0:
+                if controlled:
+                    note(agent, "no_tackle", why="timing", p=round(float(wm.self.tackle_probability), 2))
+                elif loose_theirs and self._tackle(agent, m, ball, np.delete(pos, mine, axis=0), opos):
+                    return
+        elif (FIX_TACKLE and chaser != mine and wm.kickable_opponent_existance
                 and wm.self.tackle_probability > 0.0
                 and self._tackle(agent, m, ball, np.delete(pos, mine, axis=0), opos)):
             return
 
         if chaser == mine:
-            if wm.kickable_opponent_existance and self._tackle(
-                    agent, m, ball, np.delete(pos, mine, axis=0), opos):
+            if (not TACKLE_TIMING and wm.kickable_opponent_existance and self._tackle(
+                    agent, m, ball, np.delete(pos, mine, axis=0), opos)):
                 return
             note(agent, "chase", steps=int(our_t[mine]), opp=int(opp_t.min()),
                  state=state)
@@ -951,15 +991,20 @@ class Agent1(StarterAgent):
         vs = np.linalg.norm(vels, axis=1)
         vels = vels * (np.minimum(vs, m.ball_max) / np.maximum(vs, 1e-9))[:, None]
         me_n = me.uniform_number
-        team = [t for t in agent.wm.teammates if t.uniform_number > 0 and t.uniform_number != me_n]
-        ours = (np.array([_xy(t.position) for t in team]).reshape(-1, 2),
-                np.array([t.body_direction for t in team]),
-                np.array([np.linalg.norm(_xy(t.velocity)) for t in team]))
+        team = [t for t in agent.wm.teammates if t.uniform_number > 0
+                and t.uniform_number != me_n and not t.is_goalie]
+        gk = [t for t in agent.wm.teammates if t.uniform_number > 0 and t.is_goalie]
+
+        def group(ps):
+            return (np.array([_xy(t.position) for t in ps]).reshape(-1, 2),
+                    np.array([t.body_direction for t in ps]),
+                    np.array([np.linalg.norm(_xy(t.velocity)) for t in ps]))
+        ours, keeper = group(team), group(gk)
         opp = [o for o in agent.wm.opponents if o.uniform_number > 0]
         theirs = (np.array([_xy(o.position) for o in opp]).reshape(-1, 2),
                   np.array([o.body_direction for o in opp]),
                   np.array([np.linalg.norm(_xy(o.velocity)) for o in opp]))
-        outs = [m.touch_outcome(ball, v, ours, theirs) for v in vels]
+        outs = [m.touch_outcome(ball, v, ours, theirs, keeper) for v in vels]
         v_dir = [o["value"] for o in outs]
         k = int(np.argmax(v_dir))
         rel, v_won, best = float(rels[k]), v_dir[k], outs[k]
